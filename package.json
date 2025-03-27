@@ -1,0 +1,21 @@
+{
+  "name": "atlas-game",
+  "version": "1.0.0",
+  "description": "Multiplayer geography name game using Socket.io",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "country-state-city": "^3.2.1",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.8.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
