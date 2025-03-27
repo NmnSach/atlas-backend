@@ -15,10 +15,19 @@ const allowedOrigins = [
   "http://localhost:5173"
 ];
 
-// Enable CORS middleware
+// Enable CORS middleware with more robust configuration
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
@@ -27,27 +36,33 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
 });
 
-// Initialize Socket.IO with proper CORS config
+// Initialize Socket.IO with improved CORS and connection handling
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   },
-  path: "/socket.io/",
-  transports: ["websocket", "polling"],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  transports: ['websocket', 'polling'],
   connectionStateRecovery: {
     maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
     skipMiddlewares: true
   }
 });
 
-// Handle WebSocket upgrade requests
-server.on('upgrade', (request, socket, head) => {
-  io.engine.handleUpgrade(request, socket, head, (ws) => {
-    io.engine.emit('connection', ws, request);
-  });
-});
+// Remove the custom upgrade handler to prevent multiple calls
+// Socket.IO will handle the WebSocket upgrade internally
 
 function isValidPlace(placeName) {
   const normalizedName = placeName.trim().toLowerCase();
@@ -240,8 +255,8 @@ io.on('connection', (socket) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`WebSocket endpoint: ws://localhost:${PORT}/socket.io/`);
   console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
